@@ -1,1 +1,0 @@
-curl -X POST -d "{\"username\":\"user\",\"password\":\"password\"}" -H "Content-type:application/json" --url http://localhost:3000/api/register

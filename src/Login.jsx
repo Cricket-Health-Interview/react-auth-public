@@ -1,43 +1,44 @@
-import React, { Component } from 'react';
+import React, { Component } from "react";
 
 export default class Login extends Component {
   constructor(props) {
-    super(props)
+    super(props);
     this.state = {
-      username : '',
-      password: ''
+      username: "",
+      password: ""
     };
   }
 
-  handleInputChange = (event) => {
+  handleInputChange = event => {
+    event.preventDefault();
     const { value, name } = event.target;
     this.setState({
       [name]: value
     });
-  }
+  };
 
-  onSubmit = (event) => {
+  onSubmit = event => {
     event.preventDefault();
-    fetch('/api/authenticate', {
-      method: 'POST',
+    fetch("/api/authenticate", {
+      method: "POST",
       body: JSON.stringify(this.state),
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json"
       }
     })
-    .then(res => {
-      if (res.status === 200) {
-        this.props.history.push('/');
-      } else {
-        const error = new Error(res.error);
-        throw error;
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      alert('Error logging in please try again');
-    });
-  }
+      .then(res => {
+        if (res.status === 200) {
+          this.props.history.push("/");
+        } else {
+          const error = new Error(res.error);
+          throw error;
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error logging in please try again");
+      });
+  };
 
   render() {
     return (
@@ -59,7 +60,7 @@ export default class Login extends Component {
           onChange={this.handleInputChange}
           required
         />
-        <input type="submit" value="Submit"/>
+        <input type="submit" value="Submit" />
       </form>
     );
   }

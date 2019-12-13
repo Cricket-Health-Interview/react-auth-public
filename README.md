@@ -1,15 +1,19 @@
-# React Authentication Example
+Dependencies:
 
-To run the application:
-1. first clone the repository
-2. Install the dependencies - $ npm install
-3. Start mongodb daemon - $ mongod
-4. Run the server - $ npm run server
-5. Run front dev server in separate terminal - $ npm start
-6. Use dev_scripts/createUser.sh to create a user - $ ./dev_scripts/createUser.sh
-7. The application should be running at http://localhost:3000 - you can log on with the credentials "user" "password"
+- Git
+- Node (v10.15.1 or later)
+- MongoDB
+- Yarn / npm
 
-This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
-You can find the most recent version of their guide [here](https://github.com/facebookincubator/create-react-app/blob/master/packages/react-scripts/template/README.md).
+Instructions:
 
-Originally forked from https://github.com/faizanv/react-auth-example
+1. Clone the repository
+2. Install node dependencies with `yarn install` / `npm install`
+3. `mongod --dbpath db/`
+4. In a separate terminal `yarn server-dev` (uses nodemon)
+5. In another separate terminal `./createUser.sh` (registers a user)
+6. `yarn start`
+7. Visit to [localhost:3000](http://localhost:3000)
+8. Login using credentials: `username="user"`, `password="password"` (from step 6)
+
+Originally forked from [here](https://github.com/faizanv/react-auth-example)
