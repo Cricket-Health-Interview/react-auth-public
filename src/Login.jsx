@@ -1,67 +1,68 @@
-import React, { Component } from "react";
+import React, { useState } from 'react';
+import { Redirect } from 'react-router';
 
-export default class Login extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      username: "",
-      password: ""
-    };
-  }
+const Login = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
-  handleInputChange = event => {
+  const handleInputChange = (event) => {
     event.preventDefault();
     const { value, name } = event.target;
-    this.setState({
-      [name]: value
-    });
+    if (name === 'username') {
+      setUsername(value);
+    }
+    if (name === 'password') {
+      setPassword(value);
+    }
   };
 
-  onSubmit = event => {
+  const onSubmit = (event) => {
     event.preventDefault();
-    fetch("/api/authenticate", {
-      method: "POST",
-      body: JSON.stringify(this.state),
-      headers: {
-        "Content-Type": "application/json"
-      }
+    fetch('/api/authenticate', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+      headers: { 'Content-Type': 'application/json' },
     })
-      .then(res => {
+      .then((res) => {
         if (res.status === 200) {
-          this.props.history.push("/");
+          setShouldRedirect(true);
         } else {
           const error = new Error(res.error);
           throw error;
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
-        alert("Error logging in please try again");
+        alert('Error logging in please try again');
       });
   };
 
-  render() {
-    return (
-      <form onSubmit={this.onSubmit}>
+  return (
+    <>
+      {shouldRedirect && <Redirect to="/" />}
+      <form onSubmit={onSubmit}>
         <h1>Login Below!</h1>
         <input
           type="username"
           name="username"
           placeholder="Enter username"
-          value={this.state.username}
-          onChange={this.handleInputChange}
+          value={username}
+          onChange={handleInputChange}
           required
         />
         <input
           type="password"
           name="password"
           placeholder="Enter password"
-          value={this.state.password}
-          onChange={this.handleInputChange}
+          value={password}
+          onChange={handleInputChange}
           required
         />
         <input type="submit" value="Submit" />
       </form>
-    );
-  }
-}
+    </>
+  );
+};
+
+export default Login;

@@ -1,25 +1,20 @@
-import React, { Component } from "react";
+import React, { useEffect, useState } from 'react';
 
-export default class Home extends Component {
-  constructor() {
-    super();
-    this.state = {
-      message: "Loading..."
-    };
-  }
+const Home = () => {
+  const [message, setMessage] = useState('Loading...');
 
-  componentDidMount() {
-    fetch("/api/home")
-      .then(res => res.text())
-      .then(res => this.setState({ message: res }));
-  }
+  useEffect(() => {
+    fetch('/api/home')
+      .then((res) => res.text())
+      .then((res) => setMessage(res));
+  }, []);
 
-  render() {
-    return (
-      <div>
-        <h1>Home</h1>
-        <p>{this.state.message}</p>
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <h1>Home</h1>
+      <p>{message}</p>
+    </div>
+  );
+};
+
+export default Home;

@@ -1,24 +1,25 @@
-import React, { Component } from "react";
+import React, { useEffect, useState } from 'react';
 
-export default class Secret extends Component {
-  constructor() {
-    super();
-    this.state = {
-      message: "Loading..."
-    };
-  }
+const CocaColaRecipe = () => {
+  const [message, setMessage] = useState('Loading...');
 
-  componentDidMount() {
-    fetch("/api/cokeFormula")
-      .then(res => res.text())
-      .then(res => this.setState({ message: res }));
-  }
+  useEffect(() => {
+    fetch('/api/cokeFormula')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.error) {
+          setMessage(`${res.error}: ${res.message}`);
+        } else {
+          setMessage(res.message);
+        }
+      });
+  }, []);
 
-  render() {
-    return (
-      <div>
-        <h1>{this.state.message}</h1>
-      </div>
-    );
-  }
-}
+  return (
+    <div>
+      <h1>{message}</h1>
+    </div>
+  );
+};
+
+export default CocaColaRecipe;

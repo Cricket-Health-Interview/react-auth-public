@@ -1,89 +1,111 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
-const path = require("path");
-const jwt = require("jsonwebtoken");
-const mongoose = require("mongoose");
-const User = require("./models/User");
-const withAuth = require("./middleware");
-const jwtSecret = require("./jwtSecret");
-const app = express();
+const Hapi = require('@hapi/hapi');
+const Boom = require('@hapi/boom');
+const Jwt = require('@hapi/jwt');
+const jwtSecret = require('./jwtSecret');
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.use(cookieParser());
+// pretend we have a real DB and not a mock app
+const mongodb = require('mongo-mock');
+mongodb.max_delay = 0;
+const MongoClient = mongodb.MongoClient;
 
-const mongo_uri = "mongodb://localhost/react-auth";
-mongoose.connect(mongo_uri, { useNewUrlParser: true }, function(err) {
-  if (err) {
-    throw err;
-  } else {
-    console.log(`Successfully connected to ${mongo_uri}`);
+const PORT = 8080;
+
+const startServer = async () => {
+  const server = Hapi.server({ port: PORT, host: 'localhost' });
+
+  // just like if we were actually using mongodb to connect
+  const url = 'mongodb://localhost/react-auth';
+  const client = await MongoClient.connect(url, {});
+  const db = client.db();
+  const User = db.collection('user');
+  // Insert a fake user to log in with, if they don't yet exist
+  if (!(await User.findOne({ username: 'user' }))) {
+    await User.insert({ username: 'user', password: 'password' });
   }
-});
 
-app.use(express.static(path.join(__dirname, "public")));
+  await server.register(require('hapi-auth-jwt2'));
+  await server.register(require('@hapi/vision'));
 
-app.get("/", function(req, res) {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.get("/api/home", function(req, res) {
-  res.send("Welcome!");
-});
-
-app.get("/api/cokeFormula", withAuth, function(req, res) {
-  res.send("The recipe for Coca Cola is Pepsi.");
-});
-
-app.post("/api/register", function(req, res) {
-  const { username, password } = req.body;
-  const user = new User({ username, password });
-  user.save(function(err) {
-    if (err) {
-      console.log(err);
-      res.status(500).send("Error registering new user please try again.");
-    } else {
-      res
-        .status(200)
-        .send(`User added: username=${username} password=${password}`);
-    }
+  server.views({
+    engines: {
+      html: require('handlebars'),
+    },
+    relativeTo: __dirname,
+    path: 'public',
   });
-});
 
-app.get("/logout", function(req, res) {
-  res.clearCookie("token").sendStatus(200);
-});
+  server.auth.strategy('jwt-cookie', 'jwt', {
+    key: jwtSecret,
+    validate: () => ({ isValid: true }),
+  });
 
-app.post("/api/authenticate", function(req, res) {
-  const { username, password } = req.body;
-  User.findOne({ username }, function(err, user) {
-    if (err) {
-      console.error(err);
-      res.status(500).json({
-        error: "Internal error please try again"
-      });
-    } else if (!user) {
-      res.status(401).json({
-        error: "Incorrect username or password"
-      });
-    } else {
-      user.isCorrectPassword(password, function(correctPassword) {
-        if (!correctPassword) {
-          res.status(401).json({
-            error: "Incorrect username or password"
-          });
-        } else {
-          // Issue token
-          const payload = { username };
-          const token = jwt.sign(payload, jwtSecret, {
-            expiresIn: "1h"
-          });
-          res.cookie("token", token, { httpOnly: true }).sendStatus(200);
+  // Set up settings for the 'token' cookie
+  server.state('token', {
+    ttl: 365 * 24 * 60 * 60 * 1000,
+    encoding: 'none',
+    isSecure: false,
+    isHttpOnly: true,
+    clearInvalid: false,
+    strictHeader: true,
+    path: '/',
+  });
+
+  server.route([
+    {
+      method: 'GET',
+      path: '/',
+      handler: (_, h) => h.view('index'),
+    },
+    {
+      method: 'POST',
+      path: '/api/authenticate',
+      handler: async (request, h) => {
+        const { username, password } = request.payload;
+        try {
+          const user = await User.findOne({ username, password });
+
+          if (!user) {
+            console.error('Invalid authentication, user not found with matching username/password');
+            return Boom.unauthorized('Invalid authentication');
+          }
+
+          const token = Jwt.token.generate({ username: user.username }, jwtSecret);
+          return h
+            .response()
+            .state('token', token)
+            .code(200);
+        } catch (err) {
+          console.error(err);
+          return Boom.badImplementation(err);
         }
-      });
-    }
-  });
-});
+      },
+    },
+    {
+      method: 'GET',
+      path: '/api/cokeFormula',
+      options: {
+        auth: 'jwt-cookie',
+      },
+      handler: (_, h) => h.response({ message: 'The recipe for Coca Cola is Pepsi.' }),
+    },
+    {
+      method: 'GET',
+      path: '/api/home',
+      handler: (_, h) => h.response('welcome!'),
+    },
+    {
+      method: 'GET',
+      path: '/logout',
+      handler: (_, h) =>
+        h
+          .response()
+          .unstate('token')
+          .code(200),
+    },
+  ]);
 
-app.listen(12345);
+  await server.start();
+  console.log(`Server running on ${server.info.uri}`);
+};
+
+startServer();
